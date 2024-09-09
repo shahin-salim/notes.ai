@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'dart:io';
 
 void main() {
@@ -60,12 +61,28 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   bool _isRecording = false;
   final _audioRecorder = Record();
+  final _audioPlayer = AudioPlayer();
+  List<String> _audioFiles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAudioFiles();
+  }
+
+  Future<void> _loadAudioFiles() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final files = directory.listSync().where((file) => file.path.endsWith('.m4a')).toList();
+    setState(() {
+      _audioFiles = files.map((file) => file.path).toList();
+    });
+  }
 
   Future<void> _startRecording() async {
     try {
       if (await _audioRecorder.hasPermission()) {
         final directory = await getApplicationDocumentsDirectory();
-        final path = '${directory.path}/recorded_audio.m4a';
+        final path = '${directory.path}/recorded_audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
         await _audioRecorder.start(path: path);
         setState(() {
           _isRecording = true;
@@ -84,15 +101,25 @@ class _MyHomePageState extends State<MyHomePage> {
       });
       if (path != null) {
         print('Audio recorded and saved at: $path');
+        _loadAudioFiles();
       }
     } catch (e) {
       print('Error stopping recording: $e');
     }
   }
 
+  Future<void> _playAudio(String filePath) async {
+    try {
+      await _audioPlayer.play(DeviceFileSource(filePath));
+    } catch (e) {
+      print('Error playing audio: $e');
+    }
+  }
+
   @override
   void dispose() {
     _audioRecorder.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -103,21 +130,42 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Icon(
-              _isRecording ? Icons.mic : Icons.mic_none,
-              size: 50,
-              color: _isRecording ? Colors.red : Colors.grey,
+      body: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(
+                    _isRecording ? Icons.mic : Icons.mic_none,
+                    size: 50,
+                    color: _isRecording ? Colors.red : Colors.grey,
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    _isRecording ? 'Recording in progress...' : 'Press the button to start recording',
+                  ),
+                ],
+              ),
             ),
-            SizedBox(height: 20),
-            Text(
-              _isRecording ? 'Recording in progress...' : 'Press the button to start recording',
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _audioFiles.length,
+              itemBuilder: (context, index) {
+                final file = File(_audioFiles[index]);
+                return ListTile(
+                  title: Text(file.path.split('/').last),
+                  trailing: IconButton(
+                    icon: Icon(Icons.play_arrow),
+                    onPressed: () => _playAudio(_audioFiles[index]),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _isRecording ? _stopRecording : _startRecording,
