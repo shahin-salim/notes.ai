@@ -128,6 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _processAudioChunk() async {
+    print("-----------_processAudioChunk------------");
     if (_currentRecordingPath != null) {
       final file = File(_currentRecordingPath!);
       if (await file.exists()) {
