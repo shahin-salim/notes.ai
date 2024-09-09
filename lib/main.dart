@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'dart:async';
 
 void main() {
   runApp(const MyApp());
@@ -63,11 +65,23 @@ class _MyHomePageState extends State<MyHomePage> {
   final _audioRecorder = Record();
   final _audioPlayer = AudioPlayer();
   List<String> _audioFiles = [];
+  StreamSubscription<RecordState>? _recordSub;
+  StreamSubscription<Amplitude>? _amplitudeSub;
+  String? _currentRecordingPath;
+  int _recordingId = 0;
+  int _chunkIndex = 0;
+  int _lastProcessedPosition = 0;
 
   @override
   void initState() {
     super.initState();
     _loadAudioFiles();
+    _recordSub = _audioRecorder.onStateChanged().listen((recordState) {
+      setState(() => _isRecording = recordState == RecordState.record);
+    });
+    _amplitudeSub = _audioRecorder
+        .onAmplitudeChanged(const Duration(milliseconds: 300))
+        .listen((amp) => _processAudioChunk());
   }
 
   Future<void> _loadAudioFiles() async {
@@ -82,8 +96,11 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       if (await _audioRecorder.hasPermission()) {
         final directory = await getApplicationDocumentsDirectory();
-        final path = '${directory.path}/recorded_audio_${DateTime.now().millisecondsSinceEpoch}.m4a';
-        await _audioRecorder.start(path: path);
+        _recordingId = DateTime.now().millisecondsSinceEpoch;
+        _currentRecordingPath = '${directory.path}/recording_$_recordingId.m4a';
+        _chunkIndex = 0;
+        _lastProcessedPosition = 0;
+        await _audioRecorder.start(path: _currentRecordingPath);
         setState(() {
           _isRecording = true;
         });
@@ -102,9 +119,66 @@ class _MyHomePageState extends State<MyHomePage> {
       if (path != null) {
         print('Audio recorded and saved at: $path');
         _loadAudioFiles();
+        // Send the final chunk if any
+        await _sendAudioChunk(path, true);
       }
     } catch (e) {
       print('Error stopping recording: $e');
+    }
+  }
+
+  Future<void> _processAudioChunk() async {
+    if (_currentRecordingPath != null) {
+      final file = File(_currentRecordingPath!);
+      if (await file.exists()) {
+        final fileSize = await file.length();
+        if (fileSize - _lastProcessedPosition >= 1024 * 1024) { // 1 MB
+          await _sendAudioChunk(_currentRecordingPath!, false);
+          _chunkIndex++;
+        }
+      }
+    }
+  }
+
+  Future<void> _sendAudioChunk(String filePath, bool isFinal) async {
+    try {
+      final file = File(filePath);
+      final raf = file.openSync(mode: FileMode.read);
+      raf.setPositionSync(_lastProcessedPosition);
+      
+      int endPosition = _lastProcessedPosition + 1024 * 1024; // 1 MB chunk
+      if (isFinal) {
+        endPosition = await file.length();
+      }
+      
+      final chunkSize = endPosition - _lastProcessedPosition;
+      final bytes = raf.readSync(chunkSize);
+      raf.closeSync();
+
+      final uri = Uri.parse('YOUR_BACKEND_URL/upload');
+      final request = http.MultipartRequest('POST', uri);
+      
+      request.fields['recording_id'] = _recordingId.toString();
+      request.fields['chunk_index'] = _chunkIndex.toString();
+      request.fields['is_final'] = isFinal.toString();
+      
+      request.files.add(http.MultipartFile.fromBytes(
+        'audio',
+        bytes,
+        filename: 'chunk_${_recordingId}_$_chunkIndex.m4a',
+      ));
+
+      final response = await request.send();
+      _lastProcessedPosition = endPosition;
+      print(_lastProcessedPosition);
+      if (response.statusCode == 200) {
+        print('Chunk $_chunkIndex sent successfully');
+        // _lastProcessedPosition = endPosition;
+      } else {
+        print('Failed to send chunk $_chunkIndex. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error sending audio chunk: $e');
     }
   }
 
@@ -118,6 +192,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void dispose() {
+    _recordSub?.cancel();
+    _amplitudeSub?.cancel();
     _audioRecorder.dispose();
     _audioPlayer.dispose();
     super.dispose();
