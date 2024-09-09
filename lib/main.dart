@@ -155,7 +155,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final bytes = raf.readSync(chunkSize);
       raf.closeSync();
 
-      final uri = Uri.parse('YOUR_BACKEND_URL/upload');
+      final uri = Uri.parse('https://api.coindesk.com/v1/bpi/currentprice.json');
       final request = http.MultipartRequest('POST', uri);
       
       request.fields['recording_id'] = _recordingId.toString();
