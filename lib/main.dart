@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'dart:async';
+import 'dart:math';
 
 void main() {
   runApp(const MyApp());
@@ -71,6 +72,7 @@ class _MyHomePageState extends State<MyHomePage> {
   int _recordingId = 0;
   int _chunkIndex = 0;
   int _lastProcessedPosition = 0;
+  Color _backgroundColor = Colors.white; // Add this line
 
   @override
   void initState() {
@@ -129,6 +131,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _processAudioChunk() async {
     print("-----------_processAudioChunk------------");
+    // Change background color randomly
+    setState(() {
+      _backgroundColor = Color((Random().nextDouble() * 0xFFFFFF).toInt() << 0).withOpacity(1.0);
+    });
     if (_currentRecordingPath != null) {
       final file = File(_currentRecordingPath!);
       if (await file.exists()) {
@@ -203,6 +209,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _backgroundColor, // Add this line
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
