@@ -132,7 +132,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final file = File(_currentRecordingPath!);
       if (await file.exists()) {
         final fileSize = await file.length();
-        if (fileSize - _lastProcessedPosition >= 1024 * 1024) { // 1 MB
+        if (fileSize - _lastProcessedPosition >= 1) { // 1 byte
           await _sendAudioChunk(_currentRecordingPath!, false);
           _chunkIndex++;
         }
@@ -146,7 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final raf = file.openSync(mode: FileMode.read);
       raf.setPositionSync(_lastProcessedPosition);
       
-      int endPosition = _lastProcessedPosition + 1024 * 1024; // 1 MB chunk
+      int endPosition = _lastProcessedPosition + 1; // 1 byte chunk
       if (isFinal) {
         endPosition = await file.length();
       }
