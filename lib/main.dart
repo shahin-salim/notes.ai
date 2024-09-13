@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/', // Set the initial route
       routes: {
         '/': (context) => LoginPage(), // Set LoginPage as the initial route
-        '/home': (context) => MyHomePage(), // Define the route for your home page
+        '/home': (context) => MyHomePage(title: 'Home Page'), // Add the title parameter here
       },
     );
   }
