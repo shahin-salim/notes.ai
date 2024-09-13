@@ -9,10 +9,15 @@ class LoginPage extends StatelessWidget {
   LoginPage({Key? key}) : super(key: key);
 
   Future<void> _handleGoogleSignIn(BuildContext context) async {
+    print("--------------------------_handleGoogleSignIn---------------------------------");
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      print("GoogleSignInAccount: $GoogleSignInAccount");
+
       if (googleUser != null) {
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+        print("GoogleSignInAuthentication: $GoogleSignInAuthentication");
         
         // Send the ID token to your backend
         final response = await http.post(
