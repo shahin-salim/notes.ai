@@ -6,8 +6,7 @@ import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'dart:async';
 import 'dart:math';
-import 'package:your_app/login.dart'; // Import your LoginPage
-import 'package:your_app/home.dart'; // Import your HomePage (create this if you haven't)
+import 'login.dart'; // Import your LoginPage
 
 void main() {
   runApp(MyApp());
@@ -24,7 +23,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/', // Set the initial route
       routes: {
         '/': (context) => LoginPage(), // Set LoginPage as the initial route
-        '/home': (context) => HomePage(), // Define the route for your home page
+        '/home': (context) => MyHomePage(), // Define the route for your home page
       },
     );
   }
