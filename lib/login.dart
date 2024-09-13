@@ -10,7 +10,9 @@ class LoginPage extends StatelessWidget {
 
   Future<void> _handleGoogleSignIn(BuildContext context) async {
     print("--------------------------_handleGoogleSignIn---------------------------------");
+    print("Before Google Sign In");
     final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    print("After Google Sign In");
     print("GoogleSignInAccount: $googleUser");
 
     if (googleUser != null) {
@@ -39,6 +41,8 @@ class LoginPage extends StatelessWidget {
       } else {
         print('Failed to authenticate with backend');
       }
+    } else {
+      print('Google Sign In was cancelled or failed');
     }
   }
 
