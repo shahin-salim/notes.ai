@@ -10,42 +10,35 @@ class LoginPage extends StatelessWidget {
 
   Future<void> _handleGoogleSignIn(BuildContext context) async {
     print("--------------------------_handleGoogleSignIn---------------------------------");
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      print("GoogleSignInAccount: $GoogleSignInAccount");
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+    print("GoogleSignInAccount: $googleUser");
 
-      if (googleUser != null) {
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    if (googleUser != null) {
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
 
-        print("GoogleSignInAuthentication: $GoogleSignInAuthentication");
-        
-        // Send the ID token to your backend
-        final response = await http.post(
-          Uri.parse('https://your-django-backend.com/auth/google/'),
-          headers: <String, String>{
-            'Content-Type': 'application/json; charset=UTF-8',
-          },
-          body: jsonEncode(<String, String>{
-            'id_token': googleAuth.idToken!,
-          }),
-        );
-
-        if (response.statusCode == 200) {
-          // Successfully authenticated with backend
-          final responseData = jsonDecode(response.body);
-          // Store the token or user data as needed
-          print('Logged in: ${responseData['email']}');
-          // Navigate to home page
-          Navigator.of(context).pushReplacementNamed('/home');
-        } else {
-          throw Exception('Failed to authenticate with backend');
-        }
-      }
-    } catch (error) {
-      print('Error during Google sign in: $error');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to sign in with Google')),
+      print("GoogleSignInAuthentication: $googleAuth");
+      
+      // Send the ID token to your backend
+      final response = await http.post(
+        Uri.parse('https://your-django-backend.com/auth/google/'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, String>{
+          'id_token': googleAuth.idToken!,
+        }),
       );
+
+      if (response.statusCode == 200) {
+        // Successfully authenticated with backend
+        final responseData = jsonDecode(response.body);
+        // Store the token or user data as needed
+        print('Logged in: ${responseData['email']}');
+        // Navigate to home page
+        Navigator.of(context).pushReplacementNamed('/home');
+      } else {
+        print('Failed to authenticate with backend');
+      }
     }
   }
 
